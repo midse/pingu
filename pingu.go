@@ -3,11 +3,17 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-ping/ping"
+)
+
+const (
+	TTL      = 128
+	TIMEOUT  = 500 // milliseconds
+	INTERVAL = 500 // milliseconds
+	COUNT    = 1
 )
 
 type PingAddresses struct {
@@ -26,10 +32,6 @@ type PingResult struct {
 type PingResults struct {
 	Addresses []PingResult `json:"addresses"`
 }
-
-var (
-	wg sync.WaitGroup
-)
 
 func pingString(address string, count int, interval int, timeout int, ttl int) (error, bool) {
 	pinger, err := ping.NewPinger(address)
@@ -53,6 +55,7 @@ func pingString(address string, count int, interval int, timeout int, ttl int) (
 
 func main() {
 	gin.SetMode(gin.ReleaseMode)
+
 	router := gin.Default()
 	//router.SetTrustedProxies([]string{"10.1.2.3"})
 
@@ -72,19 +75,19 @@ func main() {
 		results.Addresses = []PingResult{}
 
 		if json.TTL == 0 {
-			json.TTL = 128
+			json.TTL = TTL
 		}
 
 		if json.Timeout == 0 {
-			json.Timeout = 500
+			json.Timeout = TIMEOUT
 		}
 
 		if json.Interval == 0 {
-			json.Interval = 500
+			json.Interval = INTERVAL
 		}
 
 		if json.Count == 0 {
-			json.Count = 1
+			json.Count = COUNT
 		}
 
 		for _, address := range json.Addresses {
