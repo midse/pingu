@@ -10,8 +10,9 @@ import (
 
 type PingAddresses struct {
 	Addresses []string `json:"addresses" binding:"required"`
-	Timeout   int      `json:"timeout"`
 	Count     int      `json:"count"`
+	Interval  int      `json:"interval"`
+	Timeout   int      `json:"timeout"`
 	TTL       int      `json:"ttl"`
 }
 
@@ -24,7 +25,7 @@ type PingResults struct {
 	Addresses []PingResult `json:"addresses"`
 }
 
-func pingString(address string, count int, ttl int, timeout int) (error, bool) {
+func pingString(address string, count int, interval int, timeout int, ttl int) (error, bool) {
 	pinger, err := ping.NewPinger(address)
 
 	if err != nil {
@@ -32,6 +33,7 @@ func pingString(address string, count int, ttl int, timeout int) (error, bool) {
 	}
 
 	pinger.Count = count
+	pinger.Interval = time.Millisecond * time.Duration(interval)
 	pinger.Timeout = time.Millisecond * time.Duration(timeout)
 	pinger.TTL = ttl
 
@@ -67,6 +69,10 @@ func main() {
 			json.Timeout = 500
 		}
 
+		if json.Interval == 0 {
+			json.Interval = 500
+		}
+
 		if json.Count == 0 {
 			json.Count = 1
 		}
@@ -75,7 +81,7 @@ func main() {
 			var result PingResult
 
 			result.Address = address
-			_, result.Status = pingString(address, json.Count, json.TTL, json.Timeout)
+			_, result.Status = pingString(address, json.Count, json.Interval, json.Timeout, json.TTL)
 
 			results.Addresses = append(results.Addresses, result)
 
