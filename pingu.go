@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -24,6 +26,10 @@ type PingResult struct {
 type PingResults struct {
 	Addresses []PingResult `json:"addresses"`
 }
+
+var (
+	wg sync.WaitGroup
+)
 
 func pingString(address string, count int, interval int, timeout int, ttl int) (error, bool) {
 	pinger, err := ping.NewPinger(address)
@@ -52,6 +58,10 @@ func main() {
 
 	router.POST("/ping", func(c *gin.Context) {
 		var json PingAddresses
+		channel := make(chan struct {
+			string
+			bool
+		})
 
 		if err := c.ShouldBindJSON(&json); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -78,15 +88,35 @@ func main() {
 		}
 
 		for _, address := range json.Addresses {
-			var result PingResult
+			go func(address string, json PingAddresses) {
+				var err error
+				var status bool
 
-			result.Address = address
-			_, result.Status = pingString(address, json.Count, json.Interval, json.Timeout, json.TTL)
+				err, status = pingString(address, json.Count, json.Interval, json.Timeout, json.TTL)
 
-			results.Addresses = append(results.Addresses, result)
+				if err != nil {
+					fmt.Println(err)
+				}
+
+				channel <- struct {
+					string
+					bool
+				}{address, status}
+
+			}(address, json)
 
 		}
 
+		for range json.Addresses {
+			var result PingResult
+			data := <-channel
+
+			result.Address = data.string
+			result.Status = data.bool
+			results.Addresses = append(results.Addresses, result)
+		}
+
+		close(channel)
 		c.JSON(http.StatusOK, results)
 	})
 	router.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
