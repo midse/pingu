@@ -2,39 +2,43 @@ package main
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-ping/ping"
 )
 
-type PingAddress struct {
-	Address string `json:"address" binding:"required"`
-	Timeout int    `json:"timeout"`
-}
-
 type PingAddresses struct {
-	Addresses []PingAddress `json:"addresses" binding:"required"`
+	Addresses []string `json:"addresses" binding:"required"`
+	Timeout   int      `json:"timeout"`
+	Count     int      `json:"count"`
+	TTL       int      `json:"ttl"`
 }
 
 type PingResult struct {
-	Address string
-	Status  bool
+	Address string `json:"address"`
+	Status  bool   `json:"status"`
 }
 
 type PingResults struct {
-	Addresses []PingResult
+	Addresses []PingResult `json:"addresses"`
 }
 
-func pingString(address string) (error, bool) {
+func pingString(address string, count int, ttl int, timeout int) (error, bool) {
 	pinger, err := ping.NewPinger(address)
+
 	if err != nil {
 		return err, false
 	}
-	pinger.Count = 3
-	err = pinger.Run() // Blocks until finished.
-	if err != nil {
-		panic(err)
+
+	pinger.Count = count
+	pinger.Timeout = time.Millisecond * time.Duration(timeout)
+	pinger.TTL = ttl
+
+	if err := pinger.Run(); err != nil {
+		return err, false
 	}
+
 	stats := pinger.Statistics()
 	return nil, stats.PacketsRecv > 0
 }
@@ -55,11 +59,23 @@ func main() {
 		var results PingResults
 		results.Addresses = []PingResult{}
 
-		for _, jsonItem := range json.Addresses {
+		if json.TTL == 0 {
+			json.TTL = 128
+		}
+
+		if json.Timeout == 0 {
+			json.Timeout = 500
+		}
+
+		if json.Count == 0 {
+			json.Count = 1
+		}
+
+		for _, address := range json.Addresses {
 			var result PingResult
 
-			result.Address = jsonItem.Address
-			_, result.Status = pingString(jsonItem.Address)
+			result.Address = address
+			_, result.Status = pingString(address, json.Count, json.TTL, json.Timeout)
 
 			results.Addresses = append(results.Addresses, result)
 
