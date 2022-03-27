@@ -1,3 +1,10 @@
 builds:
   - flags:
      - -tags=nomsgpack
+    goarch:
+     - amd64
+    goos:
+     - linux
+
+archives:
+  - format: binary
