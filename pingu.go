@@ -17,11 +17,11 @@ const (
 )
 
 type PingAddresses struct {
-	Addresses []string `json:"addresses" binding:"required"`
-	Count     int      `json:"count"`
-	Interval  int      `json:"interval"`
-	Timeout   int      `json:"timeout"`
-	TTL       int      `json:"ttl"`
+	Addresses []string `json:"addresses" binding:"required,lte=10,dive,ipv4"`
+	Count     int      `json:"count" binding:"omitempty,min=1,lte=10"`
+	Interval  int      `json:"interval" binding:"omitempty,min=1,lte=10000"`
+	Timeout   int      `json:"timeout" binding:"omitempty,min=1,lte=10000"`
+	TTL       int      `json:"ttl" binding:"omitempty,min=1,lte=128"`
 }
 
 type PingResult struct {
