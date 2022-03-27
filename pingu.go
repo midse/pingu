@@ -33,7 +33,7 @@ type PingResults struct {
 	Addresses []PingResult `json:"addresses"`
 }
 
-func pingString(address string, count int, interval int, timeout int, ttl int) (error, bool) {
+func pingAddress(address string, count int, interval int, timeout int, ttl int) (error, bool) {
 	pinger, err := ping.NewPinger(address)
 
 	if err != nil {
@@ -53,6 +53,49 @@ func pingString(address string, count int, interval int, timeout int, ttl int) (
 	return nil, stats.PacketsRecv > 0
 }
 
+func pingAddresses(data PingAddresses) PingResults {
+	channel := make(chan struct {
+		string
+		bool
+	})
+
+	var results PingResults
+	results.Addresses = []PingResult{}
+
+	for _, address := range data.Addresses {
+		go func(address string, json PingAddresses) {
+			var err error
+			var status bool
+
+			err, status = pingAddress(address, json.Count, json.Interval, json.Timeout, json.TTL)
+
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			channel <- struct {
+				string
+				bool
+			}{address, status}
+
+		}(address, data)
+
+	}
+
+	for range data.Addresses {
+		var result PingResult
+		data := <-channel
+
+		result.Address = data.string
+		result.Status = data.bool
+		results.Addresses = append(results.Addresses, result)
+	}
+
+	close(channel)
+
+	return results
+}
+
 func main() {
 	gin.SetMode(gin.ReleaseMode)
 
@@ -60,57 +103,19 @@ func main() {
 	//router.SetTrustedProxies([]string{"10.1.2.3"})
 
 	router.POST("/ping", func(c *gin.Context) {
-		json := PingAddresses{
+		data := PingAddresses{
 			TTL:      TTL,
 			Timeout:  TIMEOUT,
 			Interval: INTERVAL,
 			Count:    COUNT,
 		}
 
-		channel := make(chan struct {
-			string
-			bool
-		})
-
-		if err := c.ShouldBindJSON(&json); err != nil {
+		if err := c.ShouldBindJSON(&data); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		var results PingResults
-		results.Addresses = []PingResult{}
-
-		for _, address := range json.Addresses {
-			go func(address string, json PingAddresses) {
-				var err error
-				var status bool
-
-				err, status = pingString(address, json.Count, json.Interval, json.Timeout, json.TTL)
-
-				if err != nil {
-					fmt.Println(err)
-				}
-
-				channel <- struct {
-					string
-					bool
-				}{address, status}
-
-			}(address, json)
-
-		}
-
-		for range json.Addresses {
-			var result PingResult
-			data := <-channel
-
-			result.Address = data.string
-			result.Status = data.bool
-			results.Addresses = append(results.Addresses, result)
-		}
-
-		close(channel)
-		c.JSON(http.StatusOK, results)
+		c.JSON(http.StatusOK, pingAddresses(data))
 	})
 	router.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }
