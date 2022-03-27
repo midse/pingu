@@ -7,14 +7,48 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-ping/ping"
+	"github.com/spf13/viper"
 )
 
 const (
-	TTL      = 128
-	TIMEOUT  = 500 // milliseconds
-	INTERVAL = 500 // milliseconds
-	COUNT    = 1
+	TTL        = 128
+	TIMEOUT    = 500 // milliseconds
+	INTERVAL   = 500 // milliseconds
+	COUNT      = 1
+	ENV_PREFIX = "PINGU"
 )
+
+var config Config
+
+type Config struct {
+	Address    string
+	User       string
+	Password   string
+	Privileged bool
+}
+
+func (*Config) init() {
+	viper.SetEnvPrefix(ENV_PREFIX)
+
+	viper.BindEnv("address")
+	viper.SetDefault("address", "0.0.0.0:8080")
+
+	viper.BindEnv("user")
+	viper.SetDefault("user", "pingu")
+
+	viper.BindEnv("password")
+
+	viper.BindEnv("privileged")
+	viper.SetDefault("privileged", false)
+
+	viper.AutomaticEnv()
+
+	viper.Unmarshal(&config)
+
+	if config.Password == "" {
+		panic(ENV_PREFIX + "_PASSWORD is required!")
+	}
+}
 
 type PingAddresses struct {
 	Addresses []string `json:"addresses" binding:"required,lte=10,dive,ipv4"`
@@ -44,6 +78,8 @@ func pingAddress(address string, count int, interval int, timeout int, ttl int) 
 	pinger.Interval = time.Millisecond * time.Duration(interval)
 	pinger.Timeout = time.Millisecond * time.Duration(timeout)
 	pinger.TTL = ttl
+
+	pinger.SetPrivileged(config.Privileged)
 
 	if err := pinger.Run(); err != nil {
 		return err, false
@@ -84,6 +120,8 @@ func pingAddresses(data PingAddresses) PingResults {
 
 	for range data.Addresses {
 		var result PingResult
+
+		// Read data from channel
 		data := <-channel
 
 		result.Address = data.string
@@ -99,10 +137,15 @@ func pingAddresses(data PingAddresses) PingResults {
 func main() {
 	gin.SetMode(gin.ReleaseMode)
 
-	router := gin.Default()
-	//router.SetTrustedProxies([]string{"10.1.2.3"})
+	// Load configuration from env vars
+	config.init()
 
-	router.POST("/ping", func(c *gin.Context) {
+	router := gin.Default()
+
+	authorized := router.Group("/", gin.BasicAuth(gin.Accounts{config.User: config.Password}))
+
+	authorized.POST("/ping", func(c *gin.Context) {
+		// Set default values before binding from json data
 		data := PingAddresses{
 			TTL:      TTL,
 			Timeout:  TIMEOUT,
@@ -117,5 +160,6 @@ func main() {
 
 		c.JSON(http.StatusOK, pingAddresses(data))
 	})
-	router.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+
+	router.Run(config.Address)
 }
