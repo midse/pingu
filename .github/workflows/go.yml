@@ -1,8 +1,8 @@
 name: Build and test Go
-on:
-  push:
-    tags:
-      - "v*"
+# on:
+#   push:
+#     tags:
+#       - "v*"
 jobs:
   build:
     name: Build
@@ -14,12 +14,8 @@ jobs:
           go-version: "^1.18.0"
       - uses: goreleaser/goreleaser-action@v2
         with:
-          # either 'goreleaser' (default) or 'goreleaser-pro'
           distribution: goreleaser
           version: latest
           args: release --rm-dist
-          builds:
-            flags:
-              - -tags=nomsgpack
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
