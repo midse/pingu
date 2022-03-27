@@ -5,6 +5,9 @@ builds:
      - amd64
     goos:
      - linux
+    hooks:
+      post:
+       - upx --brute "{{ .Path }}"
 
 archives:
   - format: binary
