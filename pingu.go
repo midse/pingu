@@ -60,7 +60,13 @@ func main() {
 	//router.SetTrustedProxies([]string{"10.1.2.3"})
 
 	router.POST("/ping", func(c *gin.Context) {
-		var json PingAddresses
+		json := PingAddresses{
+			TTL:      TTL,
+			Timeout:  TIMEOUT,
+			Interval: INTERVAL,
+			Count:    COUNT,
+		}
+
 		channel := make(chan struct {
 			string
 			bool
@@ -73,22 +79,6 @@ func main() {
 
 		var results PingResults
 		results.Addresses = []PingResult{}
-
-		if json.TTL == 0 {
-			json.TTL = TTL
-		}
-
-		if json.Timeout == 0 {
-			json.Timeout = TIMEOUT
-		}
-
-		if json.Interval == 0 {
-			json.Interval = INTERVAL
-		}
-
-		if json.Count == 0 {
-			json.Count = COUNT
-		}
 
 		for _, address := range json.Addresses {
 			go func(address string, json PingAddresses) {
