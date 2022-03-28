@@ -9,7 +9,7 @@ Ping multiple IPv4 addresses using HTTP requests.
 | PINGU_ADDRESS | No | 0.0.0.0:8080 | Listen address & port |
 | PINGU_USER | No | pingu | Username used for basic auth |
 | PINGU_PASSWORD | Yes | - | Password used for basic auth |
-| PINGU_PRIVILEGED | No | true | Privileged mode uses raw sockets on Linux [More details](https://github.com/go-ping/ping#supported-operating-systems=) |
+| PINGU_PRIVILEGED | No | true | Privileged mode uses raw sockets on Linux ([more details](https://github.com/go-ping/ping#supported-operating-systems=)) |
 
 
 If you want to run Pingu with a normal user (not root), you will need to allow it to bind to raw sockets :
@@ -60,5 +60,5 @@ curl -u user:password -d '{"addresses": ["127.0.0.1", "8.8.8.8", "1.1.1.1"]}' ht
 | interval | 1000 | Milliseconds. min=1 max=10000 |
 
 ```bash
-curl -u user:password -d '{"addresses": ["127.0.0.1", "8.8.8.8", "1.1.1.1"], "count": 5, "ttl": 128, "interval": 5000, "timeout": 5000}' http://127.0.0.1:8080/ping
+curl -u user:password -d '{"addresses": ["127.0.0.1"], "count": 5, "ttl": 128, "interval": 5000, "timeout": 5000}' http://127.0.0.1:8080/ping
 ```
