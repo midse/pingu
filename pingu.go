@@ -51,7 +51,7 @@ func (*Config) init() {
 }
 
 type PingAddresses struct {
-	Addresses []string `json:"addresses" binding:"required,lte=10,dive,ipv4"`
+	Addresses []string `json:"addresses" binding:"required,min=1,lte=10,dive,ipv4"`
 	Count     int      `json:"count" binding:"omitempty,min=1,lte=10"`
 	Interval  int      `json:"interval" binding:"omitempty,min=1,lte=10000"`
 	Timeout   int      `json:"timeout" binding:"omitempty,min=1,lte=10000"`
