@@ -12,8 +12,8 @@ import (
 
 const (
 	TTL        = 128
-	TIMEOUT    = 500 // milliseconds
-	INTERVAL   = 500 // milliseconds
+	TIMEOUT    = 1000 // milliseconds
+	INTERVAL   = 1000 // milliseconds
 	COUNT      = 1
 	ENV_PREFIX = "PINGU"
 )
@@ -39,7 +39,7 @@ func (*Config) init() {
 	viper.BindEnv("password")
 
 	viper.BindEnv("privileged")
-	viper.SetDefault("privileged", false)
+	viper.SetDefault("privileged", true)
 
 	viper.AutomaticEnv()
 
@@ -67,11 +67,11 @@ type PingResults struct {
 	Addresses []PingResult `json:"addresses"`
 }
 
-func pingAddress(address string, count int, interval int, timeout int, ttl int) (error, bool) {
+func pingAddress(address string, count int, interval int, timeout int, ttl int) (bool, error) {
 	pinger, err := ping.NewPinger(address)
 
 	if err != nil {
-		return err, false
+		return false, err
 	}
 
 	pinger.Count = count
@@ -82,11 +82,11 @@ func pingAddress(address string, count int, interval int, timeout int, ttl int) 
 	pinger.SetPrivileged(config.Privileged)
 
 	if err := pinger.Run(); err != nil {
-		return err, false
+		return false, err
 	}
 
 	stats := pinger.Statistics()
-	return nil, stats.PacketsRecv > 0
+	return stats.PacketsRecv > 0, nil
 }
 
 func pingAddresses(data PingAddresses) PingResults {
@@ -103,7 +103,7 @@ func pingAddresses(data PingAddresses) PingResults {
 			var err error
 			var status bool
 
-			err, status = pingAddress(address, json.Count, json.Interval, json.Timeout, json.TTL)
+			status, err = pingAddress(address, json.Count, json.Interval, json.Timeout, json.TTL)
 
 			if err != nil {
 				fmt.Println(err)
@@ -139,6 +139,11 @@ func main() {
 
 	// Load configuration from env vars
 	config.init()
+
+	status, err := pingAddress("127.0.0.1", COUNT, INTERVAL, TIMEOUT, TTL)
+	if !status {
+		panic("Pingu is unable to ping. " + err.Error())
+	}
 
 	router := gin.Default()
 
