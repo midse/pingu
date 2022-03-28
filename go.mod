@@ -1,4 +1,4 @@
-module midse/pingu
+module github.com/midse/pingu
 
 go 1.18
 
