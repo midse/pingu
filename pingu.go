@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-ping/ping"
+	probing "github.com/prometheus-community/pro-bing"
 	"github.com/spf13/viper"
 )
 
@@ -68,7 +68,7 @@ type PingResults struct {
 }
 
 func pingAddress(address string, count int, interval int, timeout int, ttl int) (bool, error) {
-	pinger, err := ping.NewPinger(address)
+	pinger, err := probing.NewPinger(address)
 
 	if err != nil {
 		return false, err

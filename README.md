@@ -9,8 +9,7 @@ Ping multiple IPv4 addresses using HTTP requests.
 | PINGU_ADDRESS | No | 0.0.0.0:8080 | Listen address & port |
 | PINGU_USER | No | pingu | Username used for basic auth |
 | PINGU_PASSWORD | Yes | - | Password used for basic auth |
-| PINGU_PRIVILEGED | No | true | Privileged mode uses raw sockets on Linux ([more details](https://github.com/go-ping/ping#supported-operating-systems=)) |
-
+| PINGU_PRIVILEGED | No | true | Privileged mode uses raw sockets on Linux ([more details](https://github.com/prometheus-community/pro-bing#supported-operating-systems)) |
 
 If you want to run Pingu with a normal user (not root), you will need to allow it to bind to raw sockets :
 
